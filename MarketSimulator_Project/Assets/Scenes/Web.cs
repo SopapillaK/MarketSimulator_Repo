@@ -12,9 +12,9 @@ public class Web : MonoBehaviour
     {
 
         //StartCoroutine(GetDate("http://localhost/UnityBackendTutorial/GetDate.php"));
-        StartCoroutine(GetUsers());
-        StartCoroutine(Login("annabelle", "ruckle"));
-        StartCoroutine(RegisterUser("testuser", "123456"));
+       // StartCoroutine(GetUsers());
+       // StartCoroutine(Login("annabelle", "ruckle"));
+       // StartCoroutine(RegisterUser("testuser", "123456"));
 
     }
 
