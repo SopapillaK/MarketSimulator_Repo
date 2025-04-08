@@ -9,12 +9,14 @@ public class Login : MonoBehaviour
     public InputField PasswordInput;
     public Button LoginButton;
    // public Button RegisterButton;
-   // public GameObject RegisterUI;
+    public GameObject MarketPanelUI;
 
     void Start()
     {
         LoginButton.onClick.AddListener(() => {
             StartCoroutine(Main.Instance.Web.Login(UsernameInput.text, PasswordInput.text));
+            MarketPanelUI.SetActive(true);
+            this.gameObject.SetActive(false);
         });
 
        // RegisterButton.onClick.AddListener(() => {

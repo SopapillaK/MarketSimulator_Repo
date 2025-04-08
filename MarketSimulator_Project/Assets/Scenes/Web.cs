@@ -3,9 +3,6 @@ using UnityEngine.Networking;
 using System.Collections;
 using UnityEngine.UI;
 
-
-
-
 public class Web : MonoBehaviour
 {
     void Start()
@@ -118,6 +115,31 @@ public class Web : MonoBehaviour
             }
         }
     }
+   
+   
+   public IEnumerator BuyItem(string userID, string itemID)
+    {
+    WWWForm form = new WWWForm();
+    form.AddField("userID", userID);
+    form.AddField("itemID", itemID);
+
+    using (UnityWebRequest www = UnityWebRequest.Post("http://localhost/MarketSimulator/BuyItem.php", form))
+    {
+        yield return www.SendWebRequest();
+
+        if (www.result != UnityWebRequest.Result.Success)
+        {
+            Debug.Log("Buy Error: " + www.error);
+        }
+        else
+        {
+            Debug.Log( www.downloadHandler.text);
+        }
+    }
+    }
+
+
+   
     /*public IEnumerator GetItemsIDs(string userID, System.Action<string> callback)
     {
         string uri = "http://localhost/UnityBackendTutorial/" + "GetItemsIDs.php";
