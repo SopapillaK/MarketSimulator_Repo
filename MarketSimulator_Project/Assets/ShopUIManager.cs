@@ -4,57 +4,61 @@ using UnityEngine;
 public class ShopUIManager : MonoBehaviour
 {
     public Web web;
-    public string userID = "1"; //dynamically set after login
+    private Login loginScript; 
+    public string userID = "1";
+
+    void Start()
+    {
+        if (Main.Instance != null && Main.Instance.loginScript != null)
+        {
+            loginScript = Main.Instance.loginScript;
+        }
+        else
+        {
+            Debug.LogWarning("Login script not found");
+        }
+    }
+
+    private bool CanBuy(string itemName)
+    {
+        if (loginScript == null)
+        {
+            Debug.LogWarning("No login refernce!");
+            return false;
+        }
+
+        string cleanedName = itemName.Trim().ToLower();
+        foreach (string item in loginScript.GetShoppingList())
+        {
+            if (item.Trim().ToLower() == cleanedName)
+                return true;
+        }
+
+        Debug.Log(itemName + " is not on the shopping list!");
+        return false;
+    }
 
     //fruits
-    public void OnBuyApplePressed()
-    {
-        StartCoroutine(web.BuyItem(userID, "1")); //apples
-    }
+    public void OnBuyApplePressed()       => TryBuy("Apple", "1");
+    public void OnBuyPearPressed()        => TryBuy("Pear", "2");
+    public void OnBuyBananaPressed()      => TryBuy("Banana", "3");
+    public void OnBuyKiwiPressed()        => TryBuy("Kiwi", "4");
+    public void OnBuyStrawberryPressed()  => TryBuy("Strawberry", "5");
 
-    public void OnBuyPearPressed()
-    {
-        StartCoroutine(web.BuyItem(userID, "2")); //pears
-    }
+    //veggies
+    public void OnBuyPepperPressed()      => TryBuy("Pepper", "6");
+    public void OnBuyBroccoliPressed()    => TryBuy("Broccoli", "7");
+    public void OnBuyCeleryPressed()      => TryBuy("Celery", "8");
+    public void OnBuyLettucePressed()     => TryBuy("Lettuce", "9");
+    public void OnBuyCarrotPressed()      => TryBuy("Carrot", "10");
 
-    public void OnBuyBananaPressed()
+    private void TryBuy(string itemName, string itemID)
     {
-        StartCoroutine(web.BuyItem(userID, "3")); //bananas
-    }
-
-    public void OnBuyKiwiPressed()
-    {
-        StartCoroutine(web.BuyItem(userID, "4")); //kiwis
-    }
-
-    public void OnBuyStrawberryPressed()
-    {
-        StartCoroutine(web.BuyItem(userID, "5")); //strawberries
-    }
-
-    //vegetables
-    public void OnBuyPepperPressed()
-    {
-        StartCoroutine(web.BuyItem(userID, "6")); //peppers
-    }
-
-    public void OnBuyBroccoliPressed()
-    {
-        StartCoroutine(web.BuyItem(userID, "7")); //broccoli
-    }
-
-    public void OnBuyCeleryPressed()
-    {
-        StartCoroutine(web.BuyItem(userID, "8")); //celery
-    }
-
-    public void OnBuyLettucePressed()
-    {
-        StartCoroutine(web.BuyItem(userID, "9")); //lettuce
-    }
-
-    public void OnBuyCarrotPressed()
-    {
-        StartCoroutine(web.BuyItem(userID, "10")); //carrots
+        if (CanBuy(itemName))
+        {
+            StartCoroutine(web.BuyItem(userID, itemID, (newCoins) => {
+                loginScript.UpdateCoins(newCoins);
+            }));
+        }
     }
 }

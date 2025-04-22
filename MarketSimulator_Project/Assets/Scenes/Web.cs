@@ -1,44 +1,33 @@
 using UnityEngine;
 using UnityEngine.Networking;
 using System.Collections;
-using UnityEngine.UI;
+using System.Text.RegularExpressions;
 
 public class Web : MonoBehaviour
 {
     void Start()
     {
-
-        //StartCoroutine(GetDate("http://localhost/UnityBackendTutorial/GetDate.php"));
-       // StartCoroutine(GetUsers());
-       // StartCoroutine(Login("annabelle", "ruckle"));
-       // StartCoroutine(RegisterUser("testuser", "123456"));
-
+        //tbc
     }
 
-   
-
     IEnumerator GetDate()
-	{
-		using (UnityWebRequest www = UnityWebRequest.Get("http://localhost/MarketSimulator/GetDate.php"))
-		{
-			yield return www.Send();
+    {
+        using (UnityWebRequest www = UnityWebRequest.Get("http://localhost/MarketSimulator/GetDate.php"))
+        {
+            yield return www.Send();
 
-			if (www.isNetworkError || www.isHttpError)
-			{
-				Debug.Log(www.error);
-			}
-			else
-			{
-				//Show results as text
-				Debug.Log(www.downloadHandler.text);
+            if (www.isNetworkError || www.isHttpError)
+            {
+                Debug.Log(www.error);
+            }
+            else
+            {
+                Debug.Log(www.downloadHandler.text);
+            }
+        }
+    }
 
-				// Or retrieve results as binary data
-				byte[] results = www.downloadHandler.data;
-			}
-		}
-	}
-
-     IEnumerator GetUsers()
+    IEnumerator GetUsers()
     {
         using (UnityWebRequest www = UnityWebRequest.Get("http://localhost/MarketSimulator/GetUsers.php"))
         {
@@ -50,20 +39,16 @@ public class Web : MonoBehaviour
             }
             else
             {
-                //Show results as text
                 Debug.Log(www.downloadHandler.text);
-
-                // Or retrieve results as binary data
-                byte[] results = www.downloadHandler.data;
             }
         }
     }
-    public IEnumerator Login(string username, string password)
+
+    public IEnumerator Login(string username, string password, System.Action<string, string> callback)
     {
         WWWForm form = new WWWForm();
         form.AddField("loginUser", username);
         form.AddField("loginPass", password);
-
 
         using (UnityWebRequest www = UnityWebRequest.Post("http://localhost/MarketSimulator/Login.php", form))
         {
@@ -71,26 +56,23 @@ public class Web : MonoBehaviour
 
             if (www.result != UnityWebRequest.Result.Success)
             {
-                Debug.Log(www.error);
+                Debug.Log("Login Error: " + www.error);
             }
             else
             {
-                Debug.Log(www.downloadHandler.text);
-                //Main.Instance.UserInfo.SetCredentials(username, password);
-               // Main.Instance.UserInfo.SetID(www.downloadHandler.text);
-            }
-            //If we logged in correctly
-                if (www.downloadHandler.text.Contains("Wrong Credentials") || www.downloadHandler.text.Contains("Username does not exist"))
+                string result = www.downloadHandler.text;
+                if (result.Contains("Wrong Credentials"))
                 {
-                    Debug.Log("Try Again");
+                    Debug.Log("Wrong Credentials");
                 }
-            else
-            {
-                Debug.Log("login success!");
-               // Main.Instance.UserProfile.SetActive(true);
-               // Main.Instance.Login.gameObject.SetActive(false);
+                else
+                {
+                    Debug.Log("Login Success! " + result);
+                    string user = GetJsonValue(result, "username");
+                    string money = GetJsonValue(result, "money");
+                    callback?.Invoke(user, money);
+                }
             }
-           
         }
     }
 
@@ -99,7 +81,6 @@ public class Web : MonoBehaviour
         WWWForm form = new WWWForm();
         form.AddField("loginUser", username);
         form.AddField("loginPass", password);
-
 
         using (UnityWebRequest www = UnityWebRequest.Post("http://localhost/MarketSimulator/RegisterUser.php", form))
         {
@@ -115,10 +96,9 @@ public class Web : MonoBehaviour
             }
         }
     }
-   
-   
-   public IEnumerator BuyItem(string userID, string itemID)
-    {
+
+   public IEnumerator BuyItem(string userID, string itemID, System.Action<string> onCoinsUpdated = null)
+{
     WWWForm form = new WWWForm();
     form.AddField("userID", userID);
     form.AddField("itemID", itemID);
@@ -133,10 +113,24 @@ public class Web : MonoBehaviour
         }
         else
         {
-            Debug.Log( www.downloadHandler.text);
+            Debug.Log(www.downloadHandler.text);
+
+            //new coin amount from server
+            string newCoins = GetJsonValue(www.downloadHandler.text, "newCoins");
+
+            //update the ui
+            onCoinsUpdated?.Invoke(newCoins);
         }
     }
+}
+
+    private string GetJsonValue(string json, string key)
+    {
+        string pattern = $"\"{key}\":\"?(.*?)\"?(,|\\}})";
+        var match = Regex.Match(json, pattern);
+        return match.Success ? match.Groups[1].Value : "";
     }
+}
 
 
    
@@ -213,4 +207,3 @@ public class Web : MonoBehaviour
     }
     */
 
-}
