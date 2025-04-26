@@ -1,137 +1,94 @@
 using UnityEngine;
 using UnityEngine.Networking;
 using System.Collections;
-using System.Text.RegularExpressions;
+using System;
 
 public class Web : MonoBehaviour
 {
-    void Start()
+    public IEnumerator Login(string username, string password, Action<string, string, string> onSuccess)
     {
-        //tbc
-    }
-
-    IEnumerator GetDate()
-    {
-        using (UnityWebRequest www = UnityWebRequest.Get("http://localhost/MarketSimulator/GetDate.php"))
-        {
-            yield return www.Send();
-
-            if (www.isNetworkError || www.isHttpError)
-            {
-                Debug.Log(www.error);
-            }
-            else
-            {
-                Debug.Log(www.downloadHandler.text);
-            }
-        }
-    }
-
-    IEnumerator GetUsers()
-    {
-        using (UnityWebRequest www = UnityWebRequest.Get("http://localhost/MarketSimulator/GetUsers.php"))
-        {
-            yield return www.Send();
-
-            if (www.isNetworkError || www.isHttpError)
-            {
-                Debug.Log(www.error);
-            }
-            else
-            {
-                Debug.Log(www.downloadHandler.text);
-            }
-        }
-    }
-
-    public IEnumerator Login(string username, string password, System.Action<string, string> callback)
-    {
-        WWWForm form = new WWWForm();
-        form.AddField("loginUser", username);
-        form.AddField("loginPass", password);
+        WWWForm form = new WWWForm(); 
+        form.AddField("loginUser", username); 
+        form.AddField("loginPass", password); 
 
         using (UnityWebRequest www = UnityWebRequest.Post("http://localhost/MarketSimulator/Login.php", form))
         {
-            yield return www.SendWebRequest();
+            yield return www.SendWebRequest(); 
 
-            if (www.result != UnityWebRequest.Result.Success)
+            if (www.result == UnityWebRequest.Result.Success)
             {
-                Debug.Log("Login Error: " + www.error);
-            }
-            else
-            {
-                string result = www.downloadHandler.text;
-                if (result.Contains("Wrong Credentials"))
+                string result = www.downloadHandler.text; //getting reply
+                Debug.Log("[Login] Response: " + result);
+
+                //get user info from JSON
+                string userID = GetJsonValue(result, "userID");
+                string money = GetJsonValue(result, "money");
+                string usernameResponse = GetJsonValue(result, "username");
+
+                if (!string.IsNullOrEmpty(userID))
                 {
-                    Debug.Log("Wrong Credentials");
+                    onSuccess?.Invoke(usernameResponse, money, userID); 
                 }
                 else
                 {
-                    Debug.Log("Login Success! " + result);
-                    string user = GetJsonValue(result, "username");
-                    string money = GetJsonValue(result, "money");
-                    callback?.Invoke(user, money);
+                    Debug.LogWarning("[Login] Failed: userID not found!");
                 }
-            }
-        }
-    }
-
-    public IEnumerator RegisterUser(string username, string password)
-    {
-        WWWForm form = new WWWForm();
-        form.AddField("loginUser", username);
-        form.AddField("loginPass", password);
-
-        using (UnityWebRequest www = UnityWebRequest.Post("http://localhost/MarketSimulator/RegisterUser.php", form))
-        {
-            yield return www.SendWebRequest();
-
-            if (www.result != UnityWebRequest.Result.Success)
-            {
-                Debug.Log(www.error);
             }
             else
             {
-                Debug.Log(www.downloadHandler.text);
+                Debug.LogError("Login error: " + www.error); 
             }
         }
     }
 
-   public IEnumerator BuyItem(string userID, string itemID, System.Action<string> onCoinsUpdated = null)
-{
-    WWWForm form = new WWWForm();
-    form.AddField("userID", userID);
-    form.AddField("itemID", itemID);
-
-    using (UnityWebRequest www = UnityWebRequest.Post("http://localhost/MarketSimulator/BuyItem.php", form))
+    //buying item from server
+    public IEnumerator BuyItem(string userID, string itemID, Action<string> onCoinsUpdated)
     {
-        yield return www.SendWebRequest();
-
-        if (www.result != UnityWebRequest.Result.Success)
+        if (string.IsNullOrEmpty(userID))
         {
-            Debug.Log("Buy Error: " + www.error);
+            Debug.LogError("userID is null or empty ");
+            yield break; 
         }
-        else
+
+        WWWForm form = new WWWForm(); 
+        form.AddField("userID", userID); 
+        form.AddField("itemID", itemID);
+
+        using (UnityWebRequest www = UnityWebRequest.Post("http://localhost/MarketSimulator/BuyItem.php", form))
         {
-            Debug.Log(www.downloadHandler.text);
+            yield return www.SendWebRequest(); 
 
-            //new coin amount from server
-            string newCoins = GetJsonValue(www.downloadHandler.text, "newCoins");
+            if (www.result == UnityWebRequest.Result.Success)
+            {
+                string result = www.downloadHandler.text; 
+                Debug.Log("[BuyItem] Server Response: " + result);
 
-            //update the ui
-            onCoinsUpdated?.Invoke(newCoins);
+                string newCoins = GetJsonValue(result, "newCoins"); //get new coins
+
+                if (!string.IsNullOrEmpty(newCoins) && int.TryParse(newCoins, out _))
+                {
+                    onCoinsUpdated?.Invoke(newCoins); //new money back
+                }
+                else
+                {
+                    Debug.LogWarning($"[BuyItem] Failed 'newCoins': '{newCoins}' server says: {result}");
+                }
+            }
+            else
+            {
+                Debug.LogError("BuyItem Error: " + www.error); 
+            }
         }
     }
-}
 
+    //help find a value in a JSON string
     private string GetJsonValue(string json, string key)
     {
-        string pattern = $"\"{key}\":\"?(.*?)\"?(,|\\}})";
-        var match = Regex.Match(json, pattern);
-        return match.Success ? match.Groups[1].Value : "";
+        string pattern = $"\"{key}\":\"?(.*?)\"?(,|\\}})"; 
+        var match = System.Text.RegularExpressions.Regex.Match(json, pattern);
+        return match.Success ? match.Groups[1].Value : ""; //return found value
     }
 }
-
 
    
     /*public IEnumerator GetItemsIDs(string userID, System.Action<string> callback)

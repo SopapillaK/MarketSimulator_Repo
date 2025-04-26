@@ -9,7 +9,7 @@ public class Main : MonoBehaviour
     public Login loginScript;
 
     // Start is called before the first frame update
-    void Start()
+    void Awake()
     {
         Instance = this; 
         Web = GetComponent<Web>();
